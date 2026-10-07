@@ -5,18 +5,31 @@
 From the repository root:
 
 ```sh
-make
-make run
+make app
+make open
+make install
 make test
 ```
 
-`make` builds the native GhosttyKit framework with Zig, then the macOS app using
-`macos/build.nu`. `make run` only launches the existing app; it never invokes
-Zig or Xcode and asks you to run `make build` if the app is missing. It sets
+`make`, `make build`, and `make app` build the native GhosttyKit framework with
+Zig, then the macOS app using `macos/build.nu`. The bundle is written to
+`macos/build/$(CONFIGURATION)/Ghostty.app` (`macos/build/Debug/Ghostty.app` by default).
+The app uses `ghost halloween.icns` from the repository root as its default icon.
+`make open` opens the existing bundle through macOS Launch Services; `make run`
+runs its executable in the foreground. Neither launch target invokes Zig or
+Xcode; both ask you to build first if the app is missing. Both set
 `GHOSTTY_EXPERIMENTAL_FLOATING_TABS=1` by default. The flag is a runtime setting:
 launching the app directly or through Finder does not inherit the Makefile's
-default. Use `make run GHOSTTY_EXPERIMENTAL_FLOATING_TABS=0` to disable it.
+default. Use `make open GHOSTTY_EXPERIMENTAL_FLOATING_TABS=0` or
+`make run GHOSTTY_EXPERIMENTAL_FLOATING_TABS=0` to disable it.
 Quit an already-running instance before launching with a different flag.
+
+`make install` copies the existing build to `~/Applications/Ghostty.app` without
+rebuilding. Quit the installed app before reinstalling; installation replaces
+the bundle's contents, removing stale files. Use `make install INSTALL_DIR=/Applications`
+to install for all users if that directory is writable. `CONFIGURATION` selects
+which build to install. Finder launches of the installed app do not inherit the
+Makefile's floating-tabs environment flag. `make open` still opens the build copy.
 
 The defaults are `CONFIGURATION=Debug` and `OPTIMIZE=ReleaseFast`. Override
 them on the command line, for example `make CONFIGURATION=ReleaseLocal`.
