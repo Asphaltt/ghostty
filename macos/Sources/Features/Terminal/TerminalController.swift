@@ -61,6 +61,8 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
     /// The notification cancellable for focused surface property changes.
     private var surfaceAppearanceCancellables: Set<AnyCancellable> = []
 
+    private(set) var floatingTabOverlay: FloatingTabOverlay?
+
     init(_ ghostty: Ghostty.App,
          withBaseConfig base: Ghostty.SurfaceConfiguration? = nil,
          withSurfaceTree tree: SplitTree<Ghostty.SurfaceView>? = nil,
@@ -481,6 +483,10 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
                 tabCreated = parent.addTabbedWindowSafely(window, ordered: .above)
             }
             if tabCreated {
+                if let parentOverlay = parentController.floatingTabOverlay {
+                    parentOverlay.synchronizePosition()
+                    controller.floatingTabOverlay?.synchronizePosition()
+                }
                 // We set the selectedWindow early here because we want the next window
                 // to become first responder as quickly as possible. Usually this is
                 // set while `-[NSWindowController showWindow:]` is called, but we're
@@ -1170,6 +1176,17 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
         // apply this based on the root config but change it later based on surface
         // config (see focused surface change callback).
         syncAppearance(.init(config))
+
+        if FloatingTabOverlay.isEnabled(config: config),
+           let terminalWindow = window as? TerminalWindow {
+            floatingTabOverlay = FloatingTabOverlay(
+                window: terminalWindow,
+                container: container,
+                commandPaletteVisibility: $commandPaletteIsShowing.eraseToAnyPublisher()
+            ) { [weak self] in
+                self?.newTab(nil)
+            }
+        }
     }
 
     /// Setup correct window frame before showing the window
@@ -1230,6 +1247,8 @@ class TerminalController: BaseTerminalController, TabGroupCloseCoordinator.Contr
     }
 
     override func windowWillClose(_ notification: Notification) {
+        floatingTabOverlay?.stop()
+        floatingTabOverlay = nil
         super.windowWillClose(notification)
         cancelPendingInitialPresentation()
         self.relabelTabs()
