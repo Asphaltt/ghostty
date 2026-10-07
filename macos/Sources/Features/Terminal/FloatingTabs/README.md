@@ -17,19 +17,19 @@ Zig, then the macOS app using `macos/build.nu`. The bundle is written to
 The app uses `ghost halloween.icns` from the repository root as its default icon.
 `make open` opens the existing bundle through macOS Launch Services; `make run`
 runs its executable in the foreground. Neither launch target invokes Zig or
-Xcode; both ask you to build first if the app is missing. Both set
-`GHOSTTY_EXPERIMENTAL_FLOATING_TABS=1` by default. The flag is a runtime setting:
-launching the app directly or through Finder does not inherit the Makefile's
-default. Use `make open GHOSTTY_EXPERIMENTAL_FLOATING_TABS=0` or
-`make run GHOSTTY_EXPERIMENTAL_FLOATING_TABS=0` to disable it.
+Xcode; both ask you to build first if the app is missing. Floating tabs are
+enabled by default in the app, including direct and Finder launches.
+Set `GHOSTTY_FLOATING_TABS_DISABLED=1` to explicitly disable them.
+Use `make open GHOSTTY_FLOATING_TABS_DISABLED=1` or
+`make run GHOSTTY_FLOATING_TABS_DISABLED=1` to opt out.
 Quit an already-running instance before launching with a different flag.
 
 `make install` copies the existing build to `~/Applications/Ghostty.app` without
 rebuilding. Quit the installed app before reinstalling; installation replaces
 the bundle's contents, removing stale files. Use `make install INSTALL_DIR=/Applications`
 to install for all users if that directory is writable. `CONFIGURATION` selects
-which build to install. Finder launches of the installed app do not inherit the
-Makefile's floating-tabs environment flag. `make open` still opens the build copy.
+which build to install. The installed app also enables floating tabs by default.
+`make open` still opens the build copy.
 
 The defaults are `CONFIGURATION=Debug` and `OPTIMIZE=ReleaseFast`. Override
 them on the command line, for example `make CONFIGURATION=ReleaseLocal`.
@@ -44,16 +44,24 @@ this checkout.
 
 ## Manual launch
 
-Enable for a fresh Ghostty process:
+Launch normally with floating tabs enabled:
 
 ```sh
-GHOSTTY_EXPERIMENTAL_FLOATING_TABS=1 macos/build/Debug/Ghostty.app/Contents/MacOS/ghostty
+macos/build/Debug/Ghostty.app/Contents/MacOS/ghostty
+```
+
+To explicitly disable floating tabs for a fresh process:
+
+```sh
+GHOSTTY_FLOATING_TABS_DISABLED=1 macos/build/Debug/Ghostty.app/Contents/MacOS/ghostty
 ```
 
 Use `macos-titlebar-style = transparent` (the default) or `native`, with window
 decorations enabled. Other titlebar styles and the Quick Terminal retain their
-existing behavior. The flag is read when a terminal window is created; restart
-without it to disable the experiment. There is no public configuration key yet.
+existing behavior. The flag is read when a terminal window is created; only the
+value `1` disables floating tabs. Restart without it (or with `0`) to enable them
+again. The old `GHOSTTY_EXPERIMENTAL_FLOATING_TABS` opt-in variable is no longer
+used. There is no public configuration key yet.
 
 The pill initially overlays the top-left of terminal content. Drag its header
 to reposition it anywhere within the terminal area; it stays inside the window
@@ -114,7 +122,8 @@ macos/build.nu --action test
 
 `FloatingTabModelTests` covers keyboard highlighting and activation, title updates, tab membership and selection,
 detaching, stale selections, action delegation, and observer cleanup.
-`FloatingTabOverlayTests` covers shared group positions, detach/merge, bounded dragging, upward expansion, resize,
+`FloatingTabOverlayTests` covers default enablement, explicit opt-out, unsupported
+window styles, shared group positions, detach/merge, bounded dragging, upward expansion, resize,
 geometry, keyboard dismissal and passthrough, pointer pass-through, command-palette
 layering, and native accessory cleanup.
 `GhosttyFloatingTabsUITests` covers Ctrl-T/arrow/Enter/Escape navigation, hover, tab actions, close confirmation,

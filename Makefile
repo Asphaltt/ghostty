@@ -5,7 +5,7 @@ ZIG ?= $(firstword $(wildcard $(HOME)/.local/bin/zig-aarch64-macos-$(ZIG_VERSION
 CONFIGURATION ?= Debug
 OPTIMIZE ?= ReleaseFast
 INSTALL_DIR ?= $(HOME)/Applications
-GHOSTTY_EXPERIMENTAL_FLOATING_TABS ?= 1
+GHOSTTY_FLOATING_TABS_DISABLED ?= 0
 
 init: build
 
@@ -33,7 +33,7 @@ run:
 	@test -x "macos/build/$(CONFIGURATION)/Ghostty.app/Contents/MacOS/ghostty" || { \
 		echo "Ghostty is not built. Run: make build CONFIGURATION=$(CONFIGURATION)" >&2; exit 1; \
 	}
-	GHOSTTY_EXPERIMENTAL_FLOATING_TABS="$(GHOSTTY_EXPERIMENTAL_FLOATING_TABS)" \
+	GHOSTTY_FLOATING_TABS_DISABLED="$(GHOSTTY_FLOATING_TABS_DISABLED)" \
 		"macos/build/$(CONFIGURATION)/Ghostty.app/Contents/MacOS/ghostty"
 
 open:
@@ -41,7 +41,7 @@ open:
 		echo "Ghostty is not built. Run: make app CONFIGURATION=$(CONFIGURATION)" >&2; exit 1; \
 	}
 	/usr/bin/open -a "$(CURDIR)/macos/build/$(CONFIGURATION)/Ghostty.app" \
-		--env "GHOSTTY_EXPERIMENTAL_FLOATING_TABS=$(GHOSTTY_EXPERIMENTAL_FLOATING_TABS)"
+		--env "GHOSTTY_FLOATING_TABS_DISABLED=$(GHOSTTY_FLOATING_TABS_DISABLED)"
 
 test: core
 	macos/build.nu --configuration "$(CONFIGURATION)" --action test
@@ -56,7 +56,7 @@ help:
 		'make run          Launch the existing build with floating tabs enabled' \
 		'make test         Build the framework and run macOS unit tests' \
 		'make clean        Remove generated build artifacts' \
-		'make run GHOSTTY_EXPERIMENTAL_FLOATING_TABS=0  Disable floating tabs' \
+		'make run GHOSTTY_FLOATING_TABS_DISABLED=1  Disable floating tabs' \
 		'make ZIG=/path/to/zig CONFIGURATION=ReleaseLocal  Override build tools/settings' \
 		'Required Zig series: $(ZIG_VERSION); selected executable: $(ZIG)'
 

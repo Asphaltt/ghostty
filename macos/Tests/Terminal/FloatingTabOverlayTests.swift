@@ -8,6 +8,38 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct FloatingTabOverlayTests {
+    @Test(arguments: ["native", "transparent"])
+    func enabledByDefaultWithExplicitOptOut(titlebarStyle: String) throws {
+        let config = try TemporaryConfig("macos-titlebar-style = \(titlebarStyle)")
+        #expect(config.errors.isEmpty)
+        #expect(FloatingTabOverlay.isEnabled(config: config, environment: [:]))
+        for value in ["", "0", "false"] {
+            #expect(FloatingTabOverlay.isEnabled(
+                config: config,
+                environment: ["GHOSTTY_FLOATING_TABS_DISABLED": value]
+            ))
+        }
+        #expect(!FloatingTabOverlay.isEnabled(
+            config: config,
+            environment: ["GHOSTTY_FLOATING_TABS_DISABLED": "1"]
+        ))
+    }
+
+    @Test(arguments: [
+        "window-decoration = none",
+        "macos-titlebar-style = tabs",
+        "macos-titlebar-style = hidden",
+    ])
+    func unsupportedWindowStylesRemainDisabled(configText: String) throws {
+        let config = try TemporaryConfig(configText)
+        #expect(config.errors.isEmpty)
+        #expect(!FloatingTabOverlay.isEnabled(config: config, environment: [:]))
+        #expect(!FloatingTabOverlay.isEnabled(
+            config: config,
+            environment: ["GHOSTTY_FLOATING_TABS_DISABLED": "0"]
+        ))
+    }
+
     @Test func keyboardShortcutAndDismissalPreserveTerminalInput() throws {
         let window = TerminalWindow(
             contentRect: NSRect(x: 100, y: 100, width: 600, height: 400),

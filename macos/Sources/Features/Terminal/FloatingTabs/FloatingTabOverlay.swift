@@ -6,8 +6,11 @@ import SwiftUI
 final class FloatingTabOverlay: NSView {
     private static let positions = NSMapTable<NSWindowTabGroup, FloatingTabPosition>.weakToStrongObjects()
 
-    static func isEnabled(config: Ghostty.Config) -> Bool {
-        ProcessInfo.processInfo.environment["GHOSTTY_EXPERIMENTAL_FLOATING_TABS"] == "1" &&
+    static func isEnabled(
+        config: Ghostty.Config,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
+        environment["GHOSTTY_FLOATING_TABS_DISABLED"] != "1" &&
             config.windowDecorations &&
             (config.macosTitlebarStyle == .native || config.macosTitlebarStyle == .transparent)
     }

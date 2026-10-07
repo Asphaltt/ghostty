@@ -22,7 +22,6 @@ final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
     @MainActor
     func testKeyboardNewTabAndCloseControlsPreserveConfirmation() throws {
         let app = try ghosttyApplication()
-        app.launchEnvironment["GHOSTTY_EXPERIMENTAL_FLOATING_TABS"] = "1"
         app.launch()
         defer { app.terminate() }
         let toggle = app.buttons["FloatingTabsToggle"].firstMatch
@@ -93,7 +92,6 @@ final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
     @MainActor
     func testKeyboardTabManagerSelectionDismissalAndTyping() throws {
         let app = try ghosttyApplication()
-        app.launchEnvironment["GHOSTTY_EXPERIMENTAL_FLOATING_TABS"] = "1"
         app.launch()
         defer { app.terminate() }
         let toggle = app.buttons["FloatingTabsToggle"].firstMatch
@@ -140,7 +138,6 @@ final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
     @MainActor
     func testTabsShareDraggedPillPosition() throws {
         let app = try ghosttyApplication()
-        app.launchEnvironment["GHOSTTY_EXPERIMENTAL_FLOATING_TABS"] = "1"
         app.launch()
         defer { app.terminate() }
         let toggle = app.buttons["FloatingTabsToggle"].firstMatch
@@ -220,7 +217,6 @@ final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
     @MainActor
     func testDraggingPreservesTerminalAndKeepsExpansionInsideWindow() throws {
         let app = try ghosttyApplication()
-        app.launchEnvironment["GHOSTTY_EXPERIMENTAL_FLOATING_TABS"] = "1"
         app.launch()
         defer { app.terminate() }
         let toggle = app.buttons["FloatingTabsToggle"].firstMatch
@@ -275,7 +271,6 @@ final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
     @MainActor
     func testHoverSelectionCreationAndTerminalGeometry() throws {
         let app = try ghosttyApplication()
-        app.launchEnvironment["GHOSTTY_EXPERIMENTAL_FLOATING_TABS"] = "1"
         app.launch()
         defer { app.terminate() }
         let toggle = app.buttons["FloatingTabsToggle"].firstMatch
@@ -306,6 +301,7 @@ final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
     @MainActor
     func testDisabledLeavesNativeTabs() throws {
         let app = try ghosttyApplication()
+        app.launchEnvironment["GHOSTTY_FLOATING_TABS_DISABLED"] = "1"
         app.launch()
         defer { app.terminate() }
         let terminal = app.groups["Terminal pane"].firstMatch
@@ -320,7 +316,6 @@ final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
     @MainActor
     func testTitlesTypingSplitsAndFullscreen() throws {
         let app = try ghosttyApplication()
-        app.launchEnvironment["GHOSTTY_EXPERIMENTAL_FLOATING_TABS"] = "1"
         app.launch()
         defer { app.terminate() }
         let toggle = app.buttons["FloatingTabsToggle"].firstMatch
