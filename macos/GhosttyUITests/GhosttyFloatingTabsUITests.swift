@@ -1,6 +1,19 @@
 import XCTest
 
 final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
+    private let defaultsSuffix = UUID().uuidString
+
+    override func ghosttyApplication(defaultsSuite: String = GhosttyCustomConfigCase.defaultsSuiteName) throws -> XCUIApplication {
+        try super.ghosttyApplication(defaultsSuite: "\(defaultsSuite).\(defaultsSuffix)")
+    }
+
+    override func tearDown() async throws {
+        UserDefaults(suiteName: "\(Self.defaultsSuiteName).\(defaultsSuffix)")?.removePersistentDomain(
+            forName: "\(Self.defaultsSuiteName).\(defaultsSuffix)"
+        )
+        try await super.tearDown()
+    }
+
     override class var defaultTestSuite: XCTestSuite {
         if ProcessInfo.processInfo.environment["GHOSTTY_RUN_FLOATING_UI_TESTS"] == "1" {
             return XCTestSuite(forTestCaseClass: Self.self)
@@ -17,6 +30,37 @@ final class GhosttyFloatingTabsUITests: GhosttyCustomConfigCase {
         command = /bin/sh
         confirm-close-surface = true
         """)
+    }
+
+    @MainActor
+    func testPillPositionSurvivesRelaunch() throws {
+        let app = try ghosttyApplication()
+        app.launch()
+        defer { app.terminate() }
+        let toggle = app.buttons["FloatingTabsToggle"].firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        let terminal = app.groups["Terminal pane"].firstMatch
+        let initial = toggle.frame
+        let destination = terminal.coordinate(withNormalizedOffset: CGVector(dx: 0.65, dy: 0.65))
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.25, dy: 0.5))
+            .press(forDuration: 0.05, thenDragTo: destination)
+        terminal.hover()
+        waitUntil { toggle.frame.minX > initial.minX + 50 && toggle.frame.minY > initial.minY + 50 }
+        let saved = CGPoint(
+            x: toggle.frame.minX - terminal.frame.minX,
+            y: toggle.frame.minY - terminal.frame.minY
+        )
+
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        XCTAssertTrue(terminal.waitForExistence(timeout: 10))
+        XCTAssertEqual(toggle.frame.minX - terminal.frame.minX, saved.x, accuracy: 1)
+        XCTAssertEqual(toggle.frame.minY - terminal.frame.minY, saved.y, accuracy: 1)
+
+        app.typeKey("t", modifierFlags: .command)
+        XCTAssertEqual(toggle.frame.minX - terminal.frame.minX, saved.x, accuracy: 1)
+        XCTAssertEqual(toggle.frame.minY - terminal.frame.minY, saved.y, accuracy: 1)
     }
 
     @MainActor

@@ -70,14 +70,19 @@ value `1` disables floating tabs. Restart without it (or with `0`) to enable the
 again. The old `GHOSTTY_EXPERIMENTAL_FLOATING_TABS` opt-in variable is no longer
 used. There is no public configuration key yet.
 
-The pill initially overlays the top-left of terminal content. Drag its header
+The pill initially overlays the top-left of terminal content if no position has
+been saved. Drag its header
 to reposition it anywhere within the terminal area; it stays inside the window
 when resized. The list opens upward near the bottom edge without moving the
 header vertically. All tabs in a window share one pill position: dragging in
 any tab updates the position for existing and new tabs. Separate windows have
-independent positions and start at the top-left. Detached tabs keep the current
+independent positions and start at the last saved position. Detached tabs keep the current
 position independently; tabs moved into another group use that group's position.
-Position is not saved across restarts.
+Finishing a drag saves the position in app preferences, so it survives closing
+all windows or restarting even with `window-save-state = never`. Restored window
+groups also retain their own positions through native window restoration.
+Restored positions are clamped to the available window area without overwriting
+the saved position when a window is temporarily smaller.
 Dragging moves only the pill, not the window or tab order.
 Hover for 180 ms or click
 to expand, select an existing tab, or use New Tab. Moving the pointer away
@@ -130,7 +135,8 @@ macos/build.nu --action test
 `FloatingTabModelTests` covers keyboard highlighting and activation, title updates, tab membership and selection,
 detaching, stale selections, action delegation, and observer cleanup.
 `FloatingTabOverlayTests` covers default enablement, explicit opt-out, unsupported
-window styles, shared group positions, detach/merge, bounded dragging, upward expansion, resize,
+window styles, saved-position reload and validation, shared group positions,
+detach/merge, bounded dragging, upward expansion, resize,
 geometry, keyboard dismissal and passthrough, pointer pass-through, command-palette
 layering, and native accessory cleanup.
 `GhosttyFloatingTabsUITests` covers Ctrl-T/arrow/Enter/Escape navigation, hover, tab actions, close confirmation,

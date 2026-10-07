@@ -8,6 +8,87 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct FloatingTabOverlayTests {
+    private let positionDefaults = FloatingTabTestDefaults()
+
+    @Test func positionPersistsAcrossOverlayLifetimesAndClampsOnRestore() throws {
+        let window = TerminalWindow(
+            contentRect: NSRect(x: 100, y: 100, width: 600, height: 400),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        let container = TerminalViewContainer { Color.clear }
+        window.contentView = container
+        let overlay = FloatingTabOverlay(
+            window: window, container: container, defaults: positionDefaults.defaults, createTab: {}
+        )
+        container.layoutSubtreeIfNeeded()
+        overlay.drag(by: CGSize(width: 250, height: 200))
+        #expect(positionDefaults.defaults.floatingTabOrigin == nil)
+        overlay.endDrag()
+        let saved = try #require(positionDefaults.defaults.floatingTabOrigin)
+        #expect(saved == overlay.savedPosition)
+        overlay.stop()
+        window.close()
+
+        let reopened = TerminalWindow(
+            contentRect: NSRect(x: 100, y: 100, width: 180, height: 160),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        reopened.isReleasedWhenClosed = false
+        let reopenedContainer = TerminalViewContainer { Color.clear }
+        reopened.contentView = reopenedContainer
+        let reloadedDefaults = try #require(UserDefaults(suiteName: positionDefaults.suiteName))
+        let restored = FloatingTabOverlay(
+            window: reopened, container: reopenedContainer, defaults: reloadedDefaults, createTab: {}
+        )
+        defer {
+            restored.stop()
+            reopened.close()
+        }
+        reopenedContainer.layoutSubtreeIfNeeded()
+        let hosting = try #require(restored.subviews.first)
+        #expect(restored.savedPosition == saved)
+        #expect(restored.bounds.contains(hosting.frame))
+        #expect(hosting.frame.origin != saved)
+        restored.endDrag()
+        #expect(reloadedDefaults.floatingTabOrigin == saved)
+
+        reopened.setContentSize(NSSize(width: 600, height: 400))
+        reopenedContainer.layoutSubtreeIfNeeded()
+        #expect(hosting.frame.origin == saved)
+
+        let windowPosition = NSPoint(x: 70, y: 90)
+        restored.restorePosition(windowPosition)
+        reopenedContainer.layoutSubtreeIfNeeded()
+        #expect(hosting.frame.origin == windowPosition)
+        #expect(reloadedDefaults.floatingTabOrigin == saved)
+        restored.restorePosition(NSPoint(x: CGFloat.nan, y: 0))
+        #expect(restored.savedPosition == windowPosition)
+    }
+
+    @Test func invalidSavedPositionsAreIgnored() {
+        let defaults = positionDefaults.defaults
+        let invalidValues: [Any] = [
+            "invalid", [10.0], [10.0, 20.0, 30.0], [-1.0, 20.0],
+            [Double.nan, 20.0], [10.0, Double.infinity],
+        ]
+        for invalid in invalidValues {
+            defaults.set(invalid, forKey: "floatingTabOrigin")
+            #expect(defaults.floatingTabOrigin == nil)
+        }
+        let origin = NSPoint(x: 100, y: 80)
+        defaults.floatingTabOrigin = origin
+        #expect(defaults.floatingTabOrigin == origin)
+        defaults.floatingTabOrigin = NSPoint(x: -1, y: 80)
+        #expect(defaults.floatingTabOrigin == origin)
+        defaults.floatingTabOrigin = nil
+        #expect(defaults.floatingTabOrigin == nil)
+    }
+
     @Test(arguments: ["native", "transparent"])
     func enabledByDefaultWithExplicitOptOut(titlebarStyle: String) throws {
         let config = try TemporaryConfig("macos-titlebar-style = \(titlebarStyle)")
@@ -55,6 +136,7 @@ struct FloatingTabOverlayTests {
             window: window,
             container: container,
             commandPaletteVisibility: palette.eraseToAnyPublisher(),
+            defaults: positionDefaults.defaults,
             createTab: {}
         )
         defer {
@@ -117,8 +199,12 @@ struct FloatingTabOverlayTests {
         let childContainer = TerminalViewContainer { Color.clear }
         parent.contentView = parentContainer
         child.contentView = childContainer
-        let parentOverlay = FloatingTabOverlay(window: parent, container: parentContainer, createTab: {})
-        let childOverlay = FloatingTabOverlay(window: child, container: childContainer, createTab: {})
+        let parentOverlay = FloatingTabOverlay(
+            window: parent, container: parentContainer, defaults: positionDefaults.defaults, createTab: {}
+        )
+        let childOverlay = FloatingTabOverlay(
+            window: child, container: childContainer, defaults: positionDefaults.defaults, createTab: {}
+        )
         defer {
             parentOverlay.stop()
             childOverlay.stop()
@@ -192,7 +278,9 @@ struct FloatingTabOverlayTests {
         window.isReleasedWhenClosed = false
         let container = TerminalViewContainer { Color.clear }
         window.contentView = container
-        let overlay = FloatingTabOverlay(window: window, container: container, createTab: {})
+        let overlay = FloatingTabOverlay(
+            window: window, container: container, defaults: positionDefaults.defaults, createTab: {}
+        )
         defer {
             overlay.stop()
             window.close()
@@ -270,6 +358,7 @@ struct FloatingTabOverlayTests {
             window: window,
             container: container,
             commandPaletteVisibility: palette.eraseToAnyPublisher(),
+            defaults: positionDefaults.defaults,
             createTab: {}
         )
         defer {
@@ -323,7 +412,9 @@ struct FloatingTabOverlayTests {
         first.contentView = container
         first.makeKeyAndOrderFront(nil)
         first.addTabbedWindow(second, ordered: .above)
-        let overlay = FloatingTabOverlay(window: first, container: container, createTab: {})
+        let overlay = FloatingTabOverlay(
+            window: first, container: container, defaults: positionDefaults.defaults, createTab: {}
+        )
         defer {
             overlay.stop()
             first.close()
@@ -339,5 +430,18 @@ struct FloatingTabOverlayTests {
         #expect(!accessory.isHidden)
         #expect(first.tabGroup?.windows.count == 2)
         #expect(overlay.superview == nil)
+    }
+}
+
+private final class FloatingTabTestDefaults {
+    let suiteName = "FloatingTabOverlayTests.\(UUID().uuidString)"
+    let defaults: UserDefaults
+
+    init() {
+        defaults = UserDefaults(suiteName: suiteName)!
+    }
+
+    deinit {
+        defaults.removePersistentDomain(forName: suiteName)
     }
 }

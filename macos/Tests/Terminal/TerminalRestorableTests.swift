@@ -6,11 +6,33 @@ import AppKit
 struct TerminalRestorableTests {
     @Test
     func areYouForgettingToAddMigrationTests() {
-        #expect(TerminalRestorableState.version == 7)
+        #expect(TerminalRestorableState.version == 8)
         #expect(TerminalRestorableState.minimumVersion == 5)
 
         #expect(QuickTerminalRestorableState.version == 1)
         #expect(QuickTerminalRestorableState.minimumVersion == 1)
+    }
+
+    @MainActor
+    @Test func floatingTabPositionRoundTrips() throws {
+        let tree = try SplitTreeTests.makeHorizontalSplit()
+        let origin = NSPoint(x: 120, y: 230)
+        let original = DummyTerminalRestorableState(.init(
+            focusedSurface: nil,
+            surfaceTree: tree.0,
+            effectiveFullscreenMode: nil,
+            tabColor: nil,
+            titleOverride: nil,
+            floatingTabOrigin: origin
+        ))
+        let data = try archive(CodableBridge(original), className: "CodableBridge<Terminal>")
+        let decoded = try unarchive(
+            data,
+            className: "CodableBridge<Terminal>",
+            as: CodableBridge<DummyTerminalRestorableState>.self
+        ).value.internalState
+        #expect(decoded.floatingTabOrigin == origin)
+        #expect(decoded.surfaceTree.contains(where: { $0.id == tree.1.id }))
     }
 
     @MainActor
@@ -58,6 +80,7 @@ struct TerminalRestorableTests {
         #expect(v5.effectiveFullscreenMode == nil)
         #expect(v5.tabColor == nil)
         #expect(v5.titleOverride == nil)
+        #expect(v5.floatingTabOrigin == nil)
         #expect(v5.surfaceTree.contains(where: { $0.id.uuidString == "926F3F2A-824C-40C9-87CA-2CDCA4E11049" }))
         #expect(v5.surfaceTree.contains(where: { $0.id.uuidString == "AC5E829B-85FD-4C69-B196-2EE469C72A90" }))
 
@@ -81,6 +104,7 @@ struct TerminalRestorableTests {
         #expect(v7.effectiveFullscreenMode == .native)
         #expect(v7.tabColor == .green)
         #expect(v7.titleOverride == "1.3.0")
+        #expect(v7.floatingTabOrigin == nil)
         #expect(v7.surfaceTree.contains(where: { $0.id.uuidString == "5D580A7A-81EA-47C6-BB9A-AD4B1783E478" }))
         #expect(v7.surfaceTree.contains(where: { $0.id.uuidString == "96EA1189-7482-41BC-A6CD-26E5190E4BFA" }))
 
@@ -106,6 +130,7 @@ struct TerminalRestorableTests {
         #expect(v7Generic.effectiveFullscreenMode == .native)
         #expect(v7Generic.tabColor == .green)
         #expect(v7Generic.titleOverride == "tip")
+        #expect(v7Generic.floatingTabOrigin == nil)
         #expect(v7Generic.surfaceTree.contains(where: { $0.id.uuidString == "953CE952-D91D-4D36-AC72-9D0F1F6BCE73" }))
         #expect(v7Generic.surfaceTree.contains(where: { $0.id.uuidString == "D3223569-2E01-4BC5-9DB2-DBFC3AFF46D1" }))
     }

@@ -58,7 +58,7 @@ extension TerminalRestorable {
 
 /// The state stored for terminal window restoration.
 final class TerminalRestorableState: TerminalRestorable {
-    static var version: Int { 7 }
+    static var version: Int { 8 }
     static var minimumVersion: Int { 5 }
 
     var focusedSurface: String? {
@@ -75,6 +75,9 @@ final class TerminalRestorableState: TerminalRestorable {
     }
     var titleOverride: String? {
         internalState.titleOverride
+    }
+    var floatingTabOrigin: NSPoint? {
+        internalState.floatingTabOrigin
     }
 
     /// Internal State we use to perform unit tests
@@ -171,6 +174,10 @@ class TerminalWindowRestoration: NSObject, NSWindowRestoration {
         // Restore the tab title override
         c.titleOverride = state.titleOverride
 
+        if let origin = state.floatingTabOrigin {
+            c.floatingTabOverlay?.restorePosition(origin)
+        }
+
         // Setup our restored state on the controller
         // Find the focused surface in surfaceTree
         if let focusedStr = state.focusedSurface {
@@ -233,4 +240,3 @@ class TerminalWindowRestoration: NSObject, NSWindowRestoration {
         }
     }
 }
-

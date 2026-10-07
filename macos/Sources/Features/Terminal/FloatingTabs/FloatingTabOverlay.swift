@@ -17,10 +17,11 @@ final class FloatingTabOverlay: NSView {
 
     let model: FloatingTabModel
     private let hostingView: FloatingTabHostingView
+    private let defaults: UserDefaults
     private weak var terminalWindow: TerminalWindow?
     private var cancellables: Set<AnyCancellable> = []
     private let hiddenAccessories = NSHashTable<NSTitlebarAccessoryViewController>.weakObjects()
-    private var position = FloatingTabPosition()
+    private var position: FloatingTabPosition
     private weak var positionGroup: NSWindowTabGroup?
     private var positionObservation: AnyCancellable?
     private var dragOrigin: NSPoint?
@@ -31,11 +32,16 @@ final class FloatingTabOverlay: NSView {
         window: TerminalWindow,
         container: TerminalViewContainer,
         commandPaletteVisibility: AnyPublisher<Bool, Never> = Just(false).eraseToAnyPublisher(),
+        defaults: UserDefaults = .ghostty,
         createTab: @escaping () -> Void
     ) {
         let model = FloatingTabModel(window: window, createTab: createTab)
         self.model = model
         self.hostingView = FloatingTabHostingView(rootView: FloatingTabView(model: model))
+        self.defaults = defaults
+        self.position = FloatingTabPosition(
+            origin: defaults.floatingTabOrigin ?? NSPoint(x: FloatingTabStyle.inset, y: FloatingTabStyle.inset)
+        )
         self.terminalWindow = window
         super.init(frame: container.bounds)
         hostingView.rootView.onDrag = { [weak self] translation in
@@ -141,7 +147,20 @@ final class FloatingTabOverlay: NSView {
     }
 
     func endDrag() {
+        guard dragOrigin != nil else { return }
         dragOrigin = nil
+        defaults.floatingTabOrigin = position.origin
+    }
+
+    var savedPosition: NSPoint {
+        synchronizePosition()
+        return position.origin
+    }
+
+    func restorePosition(_ origin: NSPoint) {
+        guard origin.x.isFinite, origin.y.isFinite, origin.x >= 0, origin.y >= 0 else { return }
+        synchronizePosition()
+        position.origin = origin
     }
 
     func synchronizePosition() {
@@ -156,6 +175,7 @@ final class FloatingTabOverlay: NSView {
         positionGroup = group
         positionObservation = position.$origin.sink { [weak self] _ in
             self?.needsLayout = true
+            self?.terminalWindow?.invalidateRestorableState()
         }
     }
 

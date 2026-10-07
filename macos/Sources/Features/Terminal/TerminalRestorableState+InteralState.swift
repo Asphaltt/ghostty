@@ -15,6 +15,7 @@ extension TerminalRestorableState {
         let effectiveFullscreenMode: FullscreenMode?
         let tabColor: TerminalTabColor?
         let titleOverride: String?
+        var floatingTabOrigin: NSPoint? = nil
     }
 }
 
@@ -26,6 +27,7 @@ extension TerminalRestorableState.InternalState where ViewType == Ghostty.Surfac
             effectiveFullscreenMode: controller.fullscreenStyle?.fullscreenMode,
             tabColor: (controller.window as? TerminalWindow)?.tabColor,
             titleOverride: controller.titleOverride,
+            floatingTabOrigin: controller.floatingTabOverlay?.savedPosition,
         )
     }
 }
