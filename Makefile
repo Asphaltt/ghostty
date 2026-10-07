@@ -14,6 +14,11 @@ build: core
 
 app: build
 
+update:
+	git pull --ff-only origin main
+	$(MAKE) app
+	$(MAKE) install
+
 install:
 	@test -x "macos/build/$(CONFIGURATION)/Ghostty.app/Contents/MacOS/ghostty" || { \
 		echo "Ghostty is not built. Run: make app CONFIGURATION=$(CONFIGURATION)" >&2; exit 1; \
@@ -50,6 +55,7 @@ help:
 	@printf '%s\n' \
 		'make              Build the native GhosttyKit framework and macOS app' \
 		'make app          Build macos/build/$(CONFIGURATION)/Ghostty.app' \
+		'make update       Pull origin/main (fast-forward only), build, then install' \
 		'make install      Install the existing app to $(INSTALL_DIR); no rebuild' \
 		'make install INSTALL_DIR=/Applications  Install for all users (requires write access)' \
 		'make open         Open the existing .app with floating tabs enabled; no rebuild' \
@@ -60,7 +66,7 @@ help:
 		'make ZIG=/path/to/zig CONFIGURATION=ReleaseLocal  Override build tools/settings' \
 		'Required Zig series: $(ZIG_VERSION); selected executable: $(ZIG)'
 
-.PHONY: init build app install core run open test help
+.PHONY: init build app update install core run open test help
 
 # glad updates the GLAD loader. To use this, place the generated glad.zip
 # in this directory next to the Makefile, remove vendor/glad and run this target.

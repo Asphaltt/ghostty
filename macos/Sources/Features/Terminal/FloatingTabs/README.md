@@ -31,6 +31,13 @@ to install for all users if that directory is writable. `CONFIGURATION` selects
 which build to install. The installed app also enables floating tabs by default.
 `make open` still opens the build copy.
 
+`make update` runs `git pull --ff-only origin main`, then `make app`, then
+`make install`, stopping if any step fails. It updates the current branch without
+switching branches, resetting local work, or creating a merge commit; divergent
+history or conflicting local changes must be resolved manually. Quit the installed
+app first. Command-line overrides such as `CONFIGURATION` and `INSTALL_DIR` are
+passed through to the build and installation.
+
 The defaults are `CONFIGURATION=Debug` and `OPTIMIZE=ReleaseFast`. Override
 them on the command line, for example `make CONFIGURATION=ReleaseLocal`.
 `make test` runs macOS unit tests, not UI tests.
